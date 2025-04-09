@@ -1,0 +1,19 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "auto-test" ]
+  pull_request:
+    branches: [ "auto-test" ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+    timeout-minutes: 120
+    steps:
+    - uses: actions/checkout@v4
+    - name: buid rvgpu
+      run: ./test/buid-scripts/rvgpu.sh
+    - name: buid glcts
+      run: ./test/buid-scripts/glcts.sh
