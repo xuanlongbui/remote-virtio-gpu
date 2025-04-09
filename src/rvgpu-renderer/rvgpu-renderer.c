@@ -34,7 +34,7 @@
 #include <rvgpu-renderer/renderer/rvgpu-egl.h>
 #include <rvgpu-renderer/rvgpu-renderer.h>
 
-#include <linux/virtio_gpu.h>
+#include <linux/virtio_gpu.h
 
 static void usage(void)
 {
