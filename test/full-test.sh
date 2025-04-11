@@ -6,7 +6,9 @@ export LD_LIBRARY_PATH=$LIB_PATH
 CAPSET_PATH=/tmp/virgl-test.capset
 WL_DIS=wayland-test
 PORT_TEST=55668 
-GLCTS_LOCATION=${DIR}/opengles-cts/build/external/openglcts/modules
+GLCTS_LOCATION=${DIR}/..
+
+/opengles-cts/build/external/openglcts/modules
 set -e
 
 exit_handler() {
@@ -39,5 +41,5 @@ echo run weston
 echo $PW| sudo -S "${DIR}/weston.sh" &
 sleep 2
 
-echo $PW| sudo -S bash -c " cd $GLCTS_LOCATION; WAYLAND_DISPLAY=$WL_DIS XDG_RUNTIME_DIR=/tmp  ${GLCTS_LOCATION}/cts-runner --type=es3"
+echo $PW| sudo -S bash -c "cd $GLCTS_LOCATION; WAYLAND_DISPLAY=$WL_DIS XDG_RUNTIME_DIR=/tmp  ${GLCTS_LOCATION}/cts-runner --type=es3"
 exit 0
