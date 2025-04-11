@@ -26,7 +26,7 @@
 #include <rvgpu-generic/rvgpu-utils.h>
 #include <rvgpu-renderer/rvgpu-renderer.h>
 #include <rvgpu-renderer/renderer/rvgpu-egl.h>
-
+#include <sys/time.h>
 void rvgpu_init_fps_dump(FILE **fps_dump_fp)
 {
 	char *fps_dump_path = getenv("RVGPU_FPS_DUMP_PATH");
@@ -91,7 +91,6 @@ void rvgpu_decrement_glsyncobjs_size(
 {
 	assert(glsyncobjs_state->size > 0);
 	glsyncobjs_state->size--;
-
 	GLsync *tmp_glsyncobjs =
 		(GLsync *)calloc(glsyncobjs_state->size, sizeof(GLsync));
 	assert(tmp_glsyncobjs);
@@ -103,6 +102,7 @@ void rvgpu_decrement_glsyncobjs_size(
 	for (size_t i = 0; i < glsyncobjs_state->cnt; ++i) {
 		if (glsyncobjs_state->ctxs[i] == ctx) {
 			glDeleteSync(glsyncobjs_state->glsyncobjs[i]);
+			glsyncobjs_state->cnt--;
 		} else {
 			tmp_glsyncobjs[j] = glsyncobjs_state->glsyncobjs[i];
 			tmp_ctxs[j] = glsyncobjs_state->ctxs[i];
@@ -150,6 +150,7 @@ void rvgpu_set_glsyncobj(struct rvgpu_glsyncobjs_state *glsyncobjs_state)
 	glsyncobjs_state->ctxs[glsyncobjs_state->cnt] =
 		glsyncobjs_state->current_ctx;
 	glsyncobjs_state->cnt++;
+	rvgpu_increment_glsyncobjs_size(glsyncobjs_state);
 }
 
 void rvgpu_set_wait_glsyncobjs(struct rvgpu_glsyncobjs_state *glsyncobjs_state)
@@ -308,7 +309,7 @@ void rvgpu_egl_destroy_scanout(struct rvgpu_egl_state *e,
 void rvgpu_egl_free(struct rvgpu_egl_state *e)
 {
 	if (e->fps_params.fps_dump_fp != NULL) {
-		close(e->fps_params.fps_dump_fp);
+		fclose(e->fps_params.fps_dump_fp);
 	}
 	eglMakeCurrent(e->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 	eglDestroyContext(e->dpy, e->context);
