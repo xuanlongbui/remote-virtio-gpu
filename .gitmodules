@@ -1,3 +1,4 @@
 [submodule "opengles-cts"]
 	path = opengles-cts
 	url = https://github.com/KhronosGroup/VK-GL-CTS.git
+	branch = remotes/origin/opengl-es-cts-3.2.11

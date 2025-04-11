@@ -1,11 +1,7 @@
  #!/bin/bash
 DIR="$( cd "$( dirname "$0" )" && pwd )"
-echo "$DIR"
-
 set -e
 pushd $DIR/../../opengles-cts
-pwd
-git checkout remotes/origin/opengl-es-cts-3.2.11
 set +e
 patch -p1 -N < $DIR/patch/patch.diff
 mkdir build; cd build
