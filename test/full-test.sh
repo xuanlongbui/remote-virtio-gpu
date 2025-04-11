@@ -1,7 +1,7 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 PW=1
-LIB_PATH="$LD_LIBRARY_PATH"
+LIB_PATH="/usr/local/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH=$LIB_PATH
 CAPSET_PATH=/tmp/virgl-test.capset
 WL_DIS=wayland-test
