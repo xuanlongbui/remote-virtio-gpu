@@ -540,7 +540,7 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 		p->egl->fps_params.rvgpu_laptime_ms = current_get_time_ms();
 	}
 	while (rvgpu_pr_read(p, &uhdr, sizeof(uhdr), 1, COMMAND) == 1) {
-		struct iovec *piov;
+		struct iovec *piov = NULL;
 		size_t ret;
 		int n;
 		unsigned int draw = 0;
