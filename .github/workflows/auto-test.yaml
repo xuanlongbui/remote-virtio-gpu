@@ -17,3 +17,5 @@ jobs:
       run: ./test/buid-scripts/rvgpu.sh
     - name: buid glcts
       run: ./test/buid-scripts/glcts.sh
+    - name: run full test
+      run: ./test/full-test.sh
