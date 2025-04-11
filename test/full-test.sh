@@ -6,9 +6,7 @@ export LD_LIBRARY_PATH=$LIB_PATH
 CAPSET_PATH=/tmp/virgl-test.capset
 WL_DIS=wayland-test
 PORT_TEST=55668 
-GLCTS_LOCATION=${DIR}/..
-
-/opengles-cts/build/external/openglcts/modules
+GLCTS_LOCATION=${DIR}/../opengles-cts/build/external/openglcts/modules
 set -e
 
 exit_handler() {
@@ -29,9 +27,11 @@ echo run proxy
 echo $PW| sudo -S ${DIR}/proxy.sh &
 echo "run rvgpu-proxy"
 sleep 1
-
 echo $PW| sudo -S  pkill rvgpu-proxy*
-sleep 2
+sleep 1
+echo $PW| sudo -S  pkill rvgpu-renderer*
+sleep 1
+$DIR/../build/src/rvgpu-renderer/rvgpu-renderer -b 1280x720@0,0 -p 55668 &
 
 echo $PW| sudo -S ${DIR}/proxy.sh $CAPSET_PATH&
 echo "run rvgpu-proxy"
