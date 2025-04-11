@@ -1,6 +1,8 @@
  #!/bin/bash
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 set -e
+cd $DIR/../../
+git submodule update --init --recursive
 pushd $DIR/../../opengles-cts
 set +e
 patch -p1 -N < $DIR/patch/patch.diff
