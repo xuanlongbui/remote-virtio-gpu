@@ -7,7 +7,7 @@ on:
     branches: [ "auto-test" ]
 
 jobs:
-  build:
+  comformace test:
 
     runs-on: self-hosted
     timeout-minutes: 120
