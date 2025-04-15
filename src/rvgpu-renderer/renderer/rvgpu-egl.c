@@ -208,7 +208,7 @@ void rvgpu_egl_init_context(struct rvgpu_egl_state *e)
 	assert(res);
 	(void)res;
 
-	eglBindAPI(EGL_OPENGL_ES_API);
+	eglBindAPI(EGL_OPENGL_API);
 
 	eglChooseConfig(e->dpy, config_attribs, NULL, 0, &n);
 	assert(n > 0);
