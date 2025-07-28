@@ -18,11 +18,28 @@
 #ifndef RVGPU_SANITY_H
 #define RVGPU_SANITY_H
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <linux/virtio_gpu.h>
-#include <stdbool.h>
-#include <stddef.h>
+ 
+#define VIRGL_CCMD_CAP2 852011
+
+#define VIRGL_CCMD_TRANSFER3D 43
+
+#define VIRGL_RESOURCE_IW_RES_HANDLE 1
+#define VIRGL_RESOURCE_IW_LEVEL 2
+#define VIRGL_RESOURCE_IW_USAGE 3
+#define VIRGL_RESOURCE_IW_STRIDE 4
+#define VIRGL_RESOURCE_IW_LAYER_STRIDE 5
+#define VIRGL_RESOURCE_IW_X 6
+#define VIRGL_RESOURCE_IW_Y 7
+#define VIRGL_RESOURCE_IW_Z 8
+#define VIRGL_RESOURCE_IW_W 9
+#define VIRGL_RESOURCE_IW_H 10
+#define VIRGL_RESOURCE_IW_D 11
+#define VIRGL_RESOURCE_IW_DATA_START 12
 
 union virtio_gpu_cmd {
 	struct virtio_gpu_ctrl_hdr hdr;

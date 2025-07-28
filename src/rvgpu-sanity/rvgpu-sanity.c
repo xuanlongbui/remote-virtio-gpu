@@ -18,7 +18,7 @@
 #include <err.h>
 #include <stdlib.h>
 
-#include <rvgpu-generic/rvgpu-utils.h>
+#include <rvgpu-utils/rvgpu-utils.h>
 #include <rvgpu-generic/rvgpu-sanity.h>
 
 unsigned long sanity_strtounum(const char *str, unsigned long min,
@@ -147,6 +147,7 @@ bool sanity_check_resource_rect(const struct virtio_gpu_rect *r, uint32_t width,
 bool sanity_check_resource_box(const struct virtio_gpu_box *b, uint32_t width,
 			       uint32_t height, uint32_t depth)
 {
+	(void)depth;
 	if ((uint64_t)b->x + b->w > width)
 		return false;
 	if ((uint64_t)b->y + b->h > height)
