@@ -366,8 +366,6 @@ static void gpu_capset_init(struct gpu_device *g, int capset)
 	for (i = 0u; i < GPU_MAX_CAPDATA; i++) {
 		struct gpu_capdata *c = &g->capdata[i];
 
-		while (1) {
-
 			if (read(capset, &c->hdr, sizeof(c->hdr)) !=
 			    (ssize_t)sizeof(c->hdr))
 				goto done;
@@ -382,10 +380,6 @@ static void gpu_capset_init(struct gpu_device *g, int capset)
 				warn("cannot read capset data");
 				goto done;
 			}
-
-			if (c->hdr.id == 1)
-				break;
-		}
 	}
 
 done:
@@ -1133,7 +1127,22 @@ static void gpu_device_serve_ctrl(struct gpu_device *g)
 			.idx = 0,
 			.flags = 0,
 		};
-
+		uint32_t c_submit_rs_id = 0;
+		struct rvgpu_res_transfer c_submit_res = { 
+			.x = 0,
+			.y = 0,
+			.z = 0,
+			.w = 0,
+			.h = 0,
+			.d = 0,
+			.level = 0,
+			.stride = 0,
+			.offset = 0
+		};
+		uint32_t *c_submit_buf = NULL;
+		uint32_t c_submit_buf_offset=0;
+		uint32_t c_submit_header = 0;
+		uint32_t c_submit_len = 0;
 		if (!vqueue_are_requests_available(&g->vq[0]))
 			break;
 
@@ -1231,6 +1240,31 @@ static void gpu_device_serve_ctrl(struct gpu_device *g)
 				}
 #endif
 				break;
+           case    VIRTIO_GPU_CMD_SUBMIT_3D:
+               if (cmd.c_cmdbuf[0] == VIRGL_CCMD_CAP2) {
+				 	c_submit_buf=cmd.c_cmdbuf;
+					while (c_submit_buf_offset < (cmd.c_submit.size/4)){
+						c_submit_header = c_submit_buf[c_submit_buf_offset];
+						c_submit_len= c_submit_header >> 16;
+						if ((c_submit_header & 0xff) == VIRGL_CCMD_TRANSFER3D ) {
+							c_submit_rs_id= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_RES_HANDLE];
+							c_submit_res.x= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_X];
+							c_submit_res.y= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_Y];
+							c_submit_res.z= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_Z];
+							c_submit_res.w= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_W];
+							c_submit_res.h= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_H];
+							c_submit_res.d= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_D];
+							c_submit_res.level= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_LEVEL];
+							c_submit_res.stride= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_STRIDE];
+							c_submit_res.offset= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_DATA_START];
+							resp.hdr.type = gpu_device_send_res(
+								g, c_submit_rs_id,
+								&c_submit_res);
+						}
+						c_submit_buf_offset +=c_submit_len +1;
+					}
+				}
+           		break;
 			case VIRTIO_GPU_CMD_TRANSFER_TO_HOST_2D:
 				resp.hdr.type = gpu_device_send_res(
 					g, cmd.t_2h2d.resource_id,

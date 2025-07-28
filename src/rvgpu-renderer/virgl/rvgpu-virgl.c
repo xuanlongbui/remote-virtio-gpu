@@ -545,12 +545,16 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 	p->egl->has_submit_3d_draw = false;
 	double virgl_cmd_laptime = 0;
 	while (rvgpu_pr_read(p, &uhdr, sizeof(uhdr), 1, COMMAND) == 1) {
-		struct iovec *piov;
+		struct iovec *piov = NULL;
 		size_t ret;
 		int n;
 		unsigned int draw = 0;
 		enum virtio_gpu_ctrl_type sane;
-
+		uint32_t *c_submit_buf = NULL;
+		uint32_t c_submit_buf_offset=0;
+		uint32_t c_submit_header = 0;
+		uint32_t c_submit_len = 0;
+		uint32_t c_submit_rs_id = 0;
 		memset(&r.hdr, 0, sizeof(r.hdr));
 		if (uhdr.size > sizeof(r))
 			errx(1, "Too long read (%u)", uhdr.size);
@@ -617,6 +621,20 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 				NULL, 0);
 			break;
 		case VIRTIO_GPU_CMD_SUBMIT_3D:
+			if (r.c_cmdbuf[0] == VIRGL_CCMD_CAP2) {
+			   c_submit_buf= r.c_cmdbuf;
+				while (c_submit_buf_offset < (r.c_submit.size/4)) {
+					c_submit_header = c_submit_buf[c_submit_buf_offset];
+					c_submit_len= c_submit_header >> 16;
+					if ((c_submit_header & 0xff) == VIRGL_CCMD_TRANSFER3D ) {
+						c_submit_rs_id= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_RES_HANDLE];			
+						if (!load_resource(p, c_submit_rs_id)) {
+							break;
+						}
+					}
+					c_submit_buf_offset +=c_submit_len +1;
+				}
+           }
 			virgl_renderer_submit_cmd(r.c_cmdbuf, (int)r.hdr.ctx_id,
 						  r.c_submit.size / 4);
 			p->egl->has_submit_3d_draw = true;
