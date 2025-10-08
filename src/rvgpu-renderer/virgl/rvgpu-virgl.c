@@ -533,6 +533,43 @@ static void rvgpu_serve_move_cursor(struct rvgpu_pr_state *p,
 	p->egl->cb->move_cursor(p->egl, c->pos.x, c->pos.y);
 }
 
+static void rvgpu_handle_submit_3d(struct rvgpu_pr_state *p, union virtio_gpu_cmd *r)
+{
+	uint32_t *c_submit_buf = NULL;
+	uint32_t c_submit_buf_offset = 0;
+	uint32_t c_submit_header = 0;
+	uint32_t c_submit_len = 0;
+	uint32_t c_submit_rs_id = 0;
+	if (r->c_cmdbuf[0] == VIRGL_CCMD_CAP2) {
+		c_submit_buf = r->c_cmdbuf;
+		while (c_submit_buf_offset < (r->c_submit.size / 4)) {
+			c_submit_header = c_submit_buf[c_submit_buf_offset] ;
+			c_submit_len = c_submit_header >> 16;
+			switch (c_submit_header & 0xff) {
+				case VIRGL_CCMD_TRANSFER3D:
+					c_submit_rs_id = c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_RES_HANDLE];
+					if (!load_resource(p, c_submit_rs_id)) {
+						break;
+					}
+					break;
+				case VIRGL_CCMD_COPY_TRANSFER3D:
+					c_submit_rs_id = c_submit_buf[c_submit_buf_offset + VIRGL_COPY_TRANSFER3D_SRC_RES_HANDLE];
+					if (!load_resource(p, c_submit_rs_id)) {
+						break;
+					}
+					break;
+				/*TODO*/
+				default:
+					break;
+			}
+			c_submit_buf_offset += c_submit_len + 1;
+		}
+	}
+	virgl_renderer_submit_cmd(r->c_cmdbuf, (int)r->hdr.ctx_id,
+							  r->c_submit.size / 4);
+	p->egl->has_submit_3d_draw = true;
+}
+
 unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 {
 	static union virtio_gpu_cmd r;
@@ -550,11 +587,6 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 		int n;
 		unsigned int draw = 0;
 		enum virtio_gpu_ctrl_type sane;
-		uint32_t *c_submit_buf = NULL;
-		uint32_t c_submit_buf_offset=0;
-		uint32_t c_submit_header = 0;
-		uint32_t c_submit_len = 0;
-		uint32_t c_submit_rs_id = 0;
 		memset(&r.hdr, 0, sizeof(r.hdr));
 		if (uhdr.size > sizeof(r))
 			errx(1, "Too long read (%u)", uhdr.size);
@@ -577,7 +609,6 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 
 		virgl_renderer_force_ctx_0();
 		virgl_renderer_poll();
-		//printf("rvgpu_pr_dispatch r.hdr.type: %d\n", r.hdr.type);
 		switch (r.hdr.type) {
 		case VIRTIO_GPU_CMD_CTX_CREATE:
 			virgl_renderer_context_create(r.hdr.ctx_id,
@@ -621,23 +652,7 @@ unsigned int rvgpu_pr_dispatch(struct rvgpu_pr_state *p)
 				NULL, 0);
 			break;
 		case VIRTIO_GPU_CMD_SUBMIT_3D:
-			if (r.c_cmdbuf[0] == VIRGL_CCMD_CAP2) {
-			   c_submit_buf= r.c_cmdbuf;
-				while (c_submit_buf_offset < (r.c_submit.size/4)) {
-					c_submit_header = c_submit_buf[c_submit_buf_offset];
-					c_submit_len= c_submit_header >> 16;
-					if ((c_submit_header & 0xff) == VIRGL_CCMD_TRANSFER3D ) {
-						c_submit_rs_id= c_submit_buf[c_submit_buf_offset + VIRGL_RESOURCE_IW_RES_HANDLE];			
-						if (!load_resource(p, c_submit_rs_id)) {
-							break;
-						}
-					}
-					c_submit_buf_offset +=c_submit_len +1;
-				}
-           }
-			virgl_renderer_submit_cmd(r.c_cmdbuf, (int)r.hdr.ctx_id,
-						  r.c_submit.size / 4);
-			p->egl->has_submit_3d_draw = true;
+			rvgpu_handle_submit_3d(p, &r);
 			break;
 		case VIRTIO_GPU_CMD_TRANSFER_TO_HOST_2D:
 			if (!load_resource(p, r.t_2h2d.resource_id)) {

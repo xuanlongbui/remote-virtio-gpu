@@ -243,6 +243,15 @@ int get_format_bpp(enum virgl_formats format)
 	case VIRGL_FORMAT_X8B8G8R8_SNORM:
 	case VIRGL_FORMAT_R10G10B10X2_UNORM:
 	case VIRGL_FORMAT_A4B4G4R4_UNORM:
+	case VIRGL_FORMAT_R11G11B10_FLOAT:
+	case VIRGL_FORMAT_R9G9B9E5_FLOAT:
+	case VIRGL_FORMAT_Z32_UNORM:
+	case VIRGL_FORMAT_S8_UINT_Z24_UNORM:
+	case VIRGL_FORMAT_R8G8B8A8_SNORM:
+	case VIRGL_FORMAT_Z24X8_UNORM:
+	case VIRGL_FORMAT_Z32_FLOAT:
+	case VIRGL_FORMAT_L32_FLOAT:
+	case VIRGL_FORMAT_R8G8B8X8_SNORM:
 		return 4; // 32 bits = 4 bytes
 	case VIRGL_FORMAT_B5G5R5A1_UNORM:
 	case VIRGL_FORMAT_B4G4R4A4_UNORM:
@@ -267,6 +276,8 @@ int get_format_bpp(enum virgl_formats format)
 	case VIRGL_FORMAT_A8L8_UNORM:
 	case VIRGL_FORMAT_A8L8_SNORM:
 	case VIRGL_FORMAT_A8L8_SRGB:
+	case VIRGL_FORMAT_Z16_UNORM:
+  case VIRGL_FORMAT_L16_FLOAT:
 		return 2; // 16 bits = 2 bytes
 	case VIRGL_FORMAT_L8_UNORM:
 	case VIRGL_FORMAT_A8_UNORM:
@@ -297,6 +308,9 @@ int get_format_bpp(enum virgl_formats format)
 	case VIRGL_FORMAT_R32G32_FIXED:
 	case VIRGL_FORMAT_R32G32_UINT:
 	case VIRGL_FORMAT_R32G32_SINT:
+	case VIRGL_FORMAT_R16G16B16X16_UINT:
+	case VIRGL_FORMAT_R16G16B16X16_SINT:
+	case VIRGL_FORMAT_Z32_FLOAT_S8X24_UINT:
 		return 8; // 64 bits = 8 bytes
 	case VIRGL_FORMAT_R32G32B32_FLOAT:
 	case VIRGL_FORMAT_R32G32B32_UNORM:
@@ -341,6 +355,7 @@ int get_format_bpp(enum virgl_formats format)
 	case VIRGL_FORMAT_R16G16B16A16_FLOAT:
 	case VIRGL_FORMAT_R16G16B16A16_UINT:
 	case VIRGL_FORMAT_R16G16B16A16_SINT:
+	case VIRGL_FORMAT_R16G16B16X16_FLOAT:
 		return 8; // 64 bits = 8 bytes
 	default:
 		fprintf(stderr, "Format is not Support: %s\n",
@@ -421,11 +436,15 @@ static size_t compressed_data_size(uint32_t format, uint32_t width,
 	case VIRGL_FORMAT_ETC2_SRGB8:
 	case VIRGL_FORMAT_ETC2_RGB8A1:
 	case VIRGL_FORMAT_ETC2_SRGB8A1:
-		// ETC1/ETC2 block size is 8 bytes for a 4x4 pixel block
+  case VIRGL_FORMAT_ETC2_R11_UNORM:
+  case VIRGL_FORMAT_ETC2_R11_SNORM:
+		// ETC1/ETC2/EAC R11 block size is 8 bytes for a 4x4 pixel block
 		return ((width + 3) / 4) * ((height + 3) / 4) * 8;
 	case VIRGL_FORMAT_ETC2_RGBA8:
 	case VIRGL_FORMAT_ETC2_SRGBA8:
-		// ETC2 RGBA block size is 16 bytes for a 4x4 pixel block
+  case VIRGL_FORMAT_ETC2_RG11_UNORM:
+  case VIRGL_FORMAT_ETC2_RG11_SNORM:
+		// ETC2 RGBA and EAC RG11 block size is 16 bytes for a 4x4 pixel block
 		return ((width + 3) / 4) * ((height + 3) / 4) * 16;
 	case VIRGL_FORMAT_ASTC_4x4:
 	case VIRGL_FORMAT_ASTC_4x4_SRGB:
@@ -495,9 +514,28 @@ int rvgpu_ctx_transfer_to_host(struct rvgpu_ctx *ctx,
 			       const struct rvgpu_res *res)
 {
 	struct rvgpu_patch p = { .len = 0 };
+	size_t size = 0;
 	if (res->info.target == 0) {
-		gpu_device_send_data(ctx, res->backing, res->nbacking,
-				     t->offset, t->w);
+		if (t->stride > 0) {
+			if (t->d > 1 && t->h > 1) {
+				// Transfer h rows, each of stride bytes, for d slices
+				// (3D texture)
+				size = t->d * t->h * t->stride;
+			} else if (t->h > 1) {
+				// Transfer h rows, each of stride bytes
+				size = t->h * t->stride;
+			} else if (t->w > 0) {
+				// Transfer a single row of w bytes
+				size = t->w;
+			}
+		} else if (t->w > 0) {
+			size = t->w;
+		}
+		// printf("rvgpu_ctx_transfer_to_host: target=0, w=%u, h=%u, d=%u, stride=%u, offset=%zu, size=%zu\n",
+		//        t->w, t->h, t->d, t->stride, t->offset, size);
+		if (size > 0)
+			gpu_device_send_data(ctx, res->backing, res->nbacking,
+					     t->offset, size);
 	} else if (res->info.target == 2) {
 		if (virgl_format_is_compressed(res->info.format)) {
 			size_t compressed_size = compressed_data_size(
